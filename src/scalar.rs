@@ -7,7 +7,7 @@ use core::fmt;
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use rand_core::RngCore;
 
-use ff::{Field, PrimeField, WithSmallOrderMulGroup};
+use ff::{Field, FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "bits")]
@@ -20,7 +20,7 @@ use crate::util::{adc, mac, sbb};
 // The internal representation of this type is four 64-bit unsigned
 // integers in little-endian order. `Scalar` values are always in
 // Montgomery form; i.e., Scalar(a) = aR mod q, with R = 2^256.
-#[derive(Clone, Copy, Eq)]
+#[derive(Clone, Copy, Eq, Hash)]
 pub struct Scalar(pub(crate) [u64; 4]);
 
 impl fmt::Debug for Scalar {
@@ -43,6 +43,12 @@ impl fmt::Display for Scalar {
 impl From<u64> for Scalar {
     fn from(val: u64) -> Scalar {
         Scalar([val, 0, 0, 0]) * R2
+    }
+}
+
+impl From<bool> for Scalar {
+    fn from(val: bool) -> Self {
+        Self::from(u64::from(val))
     }
 }
 
@@ -259,6 +265,12 @@ impl Default for Scalar {
 
 #[cfg(feature = "zeroize")]
 impl zeroize::DefaultIsZeroes for Scalar {}
+
+impl FromUniformBytes<64> for Scalar {
+    fn from_uniform_bytes(bytes: &[u8; 64]) -> Self {
+        Self::from_bytes_wide(bytes)
+    }
+}
 
 impl Scalar {
     /// Returns zero, the additive identity.
